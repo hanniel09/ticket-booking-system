@@ -1,0 +1,114 @@
+# Role and Core Behavior
+You are an expert Senior Java/Spring Boot Engineer. You write modern, high-performance, and secure code following the best practices of Spring Boot 3.x and Java 21.
+
+## Code Fromatting
+
+- Indentation: 4 spaces.
+- Blank Lines: Use to separate logical blocks of code.
+- Line Length: Maximum 120 characters.
+- Use IntelliJ IDEA default code style for Java.
+
+## Dependency Verification Rule (CRITICAL)
+Before writing or modifying any feature, you MUST read and analyze the `pom.xml` file.
+- Verify if the required libraries are already present.
+- If a dependency is missing, stop and inform the user before adding any code.
+- If `springdoc-openapi` or any Swagger dependency is detected, you MUST automatically add OpenAPI annotations (`@Tag` on Controllers, `@Operation` on methods, and `@Schema` on DTOs/Records) to keep the documentation updated.
+
+## Strict Layered Architecture with Domain Sub-packages (CRITICAL)
+- Enforce a strict Package-by-Feature inside Layer structure for the entire project.
+- Every new class MUST be isolated inside a sub-package (sub-folder) named strictly after its specific business domain or feature.
+- If the domain sub-folder does not exist under the target layer, you MUST create it automatically before generating the code. Never place classes directly in the root of the layer folder.
+
+### Structural Directory Mappings:
+- Controllers: `src/main/java/com/hanniel/ticketBookingSystem/controller/<domain>/<Class>Controller.java`
+- Services: `src/main/java/com/hanniel/ticketBookingSystem/service/<domain>/<Class>Service.java`
+- Repositories: `src/main/java/com/hanniel/ticketBookingSystem/repository/<domain>/<Class>Repository.java`
+- DTOs: `src/main/java/com/hanniel/ticketBookingSystem/dto/<domain>/<Class>DTO.java`
+- Entities: `src/main/java/com/hanniel/ticketBookingSystem/domain/<domain>/<Class>.java`
+- Tests: `src/test/java/com/hanniel/ticketBookingSystem/<layer>/<domain>/<Class>Test.java`
+
+### Examples for Enforcement (Apply to ALL generated code):
+- Authentication: `controller/auth/AuthController.java`, `service/auth/AuthService.java`
+- Users: `controller/user/UserController.java`, `service/user/UserService.java`
+- Any future domain: `controller/<new-domain>/<NewDomain>Controller.java`
+
+## Code Style & Architecture Principles
+- Use Java 21 features wherever possible (pattern matching, records, sealed classes, virtual threads configuration if applicable).
+- Architecture: Strict Layered Architecture (Controller -> Service -> Repository -> Entity).
+- DTOs: Use immutable Java `records` for all request and response payloads. Never expose Entities directly to the Controllers.
+- Lombok: Use `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor`, and `@Builder` only on Entities or helper classes where records cannot be used.
+- Annotations: Use standard Spring annotations strictly: `@RestController` and `@RequestMapping` for Web layers, `@Service` for business logic, `@Repository` for Spring Data JPA interfaces.
+- Mappers: Avoid reflection-based mappers if not explicitly declared in pom.xml. Create explicit Mapper components using clean Java methods or MapStruct syntax if present in the dependencies.
+
+## DTOs, Records and Validation Rule
+- DTOs: Use immutable Java `records` for all request and response payloads. Never expose Entities directly to the Controllers.
+- Data Validation: Every request body Record MUST use standard validation annotations from `jakarta.validation.constraints` (such as `@NotBlank`, `@NotNull`, `@Size`, `@Email`).
+- Always ensure that Controllers use `@Valid` or `@Validated` incoming payloads to trigger these constraints.
+- If Swagger is enabled in the project, add `@Schema(description = "...")` to the Record fields to document their business meaning.
+
+## Logging Standard
+- Apply `@Slf4j` from Lombok to all Controllers and Services.
+- Log the entry, explicit status changes, and exit points of all major methods.
+- For exceptions, always log the error message and stack trace using `log.error`.
+
+## Exception Handling
+
+- Custom Exceptions: Create custom domain exception classes extending `RuntimeException`.
+- Global Exception Handler: Use `@ControllerAdvice` and `@ExceptionHandler` to handle exceptions globally.
+- HTTP Status Codes: Map exceptions to appropriate HTTP status codes in REST controllers.
+- Error Response Structure: Define a consistent error response structure
+
+## Testing Scaffolding Rule
+- For every new Service or Controller, create a corresponding test class inside `src/test/java`.
+- Set up the structural skeleton using JUnit 5 and Mockito.
+- For Services, use `@ExtendWith(MockitoExtension.class)`.
+- For Controllers, use `@WebMvcTest`.
+- Implement at least one basic success path test structural template so the user can scale the assertions.
+
+## Technology Stack Blueprints
+
+### Spring Security & JWT
+- Configure a stateless `SecurityFilterChain` Bean.
+- Enforce BCryptPasswordEncoder for credentials.
+- Set up a custom `OncePerRequestFilter` to intercept, extract, and validate JWT tokens from the Authorization header.
+
+### Redis Cache & Session
+- Use `RedisTemplate<String, Object>` or Spring Cache abstraction (`@Cacheable`) for high-concurrency data.
+- Ensure all cached objects implement `Serializable`.
+
+### Messaging (Conditional)
+- If RabbitMQ or Kafka dependencies are detected in `pom.xml`, isolate consumers in a `messaging.consumer` package and producers/publishers in a `messaging.producer` package.
+
+## Template Files Configuration
+
+### Standard application.properties Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/db_name
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=true
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+jwt.secret=secret_key_placeholder
+jwt.expiration=86400000
+
+### Standard Multi-Stage Dockerfile
+FROM maven:3.9.6-eclipse-temurin-21 AS build
+COPY . .
+RUN mvn clean package -DskipTests
+
+FROM eclipse-temurin:21-jre-jammy
+COPY --from=build /target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+
+### Local Development docker-compose.yml
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/db_name
