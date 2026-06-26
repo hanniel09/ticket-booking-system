@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:17
+    container_name: ticker-booking-postgres
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: 123456
+      DB_NAME: ticket-booking
+    ports:
+      - "5430:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ticket-booking-service
+
+  redis:
+    image: redis:7.2-alphine
+    container_name: ticket-redis
+    command: redis-server --appendonly yes --requirepass supersecretpassword
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ticket-booking-service
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  ticket-booking-service:
