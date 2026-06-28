@@ -20,3 +20,12 @@ High-concurrency event ticketing platform designed to handle massive traffic spi
 - Database: PostgreSQL (Read/Write tuning, Pessimistic/Optimistic locking where needed)
 - Cache & Distributed Locks: Redis (Redisson or Lettuce for distributed ticket locks and TTL management)
 - Infrastructure: Docker & Docker Compose
+
+## Messaging & Event-Driven Topology (CRITICAL)
+1. Spring App performs atomic inventory check via Redis `DECRBY`.
+2. If available, Spring App dispatches two parallel messages to RabbitMQ:
+    - Fila Imediata (`ticket.payment.queue`): For instant payment capture.
+    * Fila com Delay (`ticket.delayed.exchange`): Delayed by 10 minutes to act as the official inventory referee.
+3. A dedicated Consumer/Worker reads the Payment Queue, calls the gateway, and updates PostgreSQL status via gRPC.
+4. If payment fails síncronamente, Server updates DB to `PAYMENT_FAILED` and pushes status to Frontend via SSE (Server-Sent Events). The user can retry with another card within the 10-minute window.
+5. After 10 minutes, the Delayed Worker wakes up, checks the DB status. If status is NOT `PAID`, it triggers an `INCRBY` to restore inventory in Redis and sets the database order to `CANCELLED`.
