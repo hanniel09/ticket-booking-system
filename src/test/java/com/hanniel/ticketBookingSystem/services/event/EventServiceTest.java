@@ -4,6 +4,7 @@ import com.hanniel.ticketBookingSystem.domain.event.Event;
 import com.hanniel.ticketBookingSystem.dtos.event.EventRequestDTO;
 import com.hanniel.ticketBookingSystem.dtos.event.EventResponseDTO;
 import com.hanniel.ticketBookingSystem.exceptions.global.ResourceNotFoundException;
+import com.hanniel.ticketBookingSystem.helper.date.DateHelper;
 import com.hanniel.ticketBookingSystem.mappers.event.EventMapper;
 import com.hanniel.ticketBookingSystem.repositories.event.EventRepository;
 import org.junit.jupiter.api.Test;
@@ -35,9 +36,9 @@ class EventServiceTest {
 
     @Test
     void createEvent_Success() {
-        EventRequestDTO request = new EventRequestDTO("Rock in Rio", OffsetDateTime.now());
-        Event event = new Event(UUID.randomUUID(), request.name(), request.eventDate());
-        EventResponseDTO expectedResponse = new EventResponseDTO(event.getId(), event.getName(), event.getEventDate());
+        EventRequestDTO request = new EventRequestDTO("Rock in Rio", "27/06/2026");
+        Event event = new Event(UUID.randomUUID(), request.name(), DateHelper.toOffsetDateTime(request.eventDate()));
+        EventResponseDTO expectedResponse = new EventResponseDTO(event.getId(), event.getName(), request.eventDate());
 
         when(eventMapper.toEntity(any(EventRequestDTO.class))).thenReturn(event);
         when(eventRepository.save(any(Event.class))).thenReturn(event);
@@ -54,7 +55,7 @@ class EventServiceTest {
     @Test
     void getAllEvents_Success() {
         Event event = new Event(UUID.randomUUID(), "Lollapalooza", OffsetDateTime.now());
-        EventResponseDTO expectedResponse = new EventResponseDTO(event.getId(), event.getName(), event.getEventDate());
+        EventResponseDTO expectedResponse = new EventResponseDTO(event.getId(), event.getName(), "27/06/2026");
 
         when(eventRepository.findAll()).thenReturn(List.of(event));
         when(eventMapper.toResponse(any(Event.class))).thenReturn(expectedResponse);
@@ -70,7 +71,7 @@ class EventServiceTest {
     void getEventById_Success() {
         UUID id = UUID.randomUUID();
         Event event = new Event(id, "Tomorrowland", OffsetDateTime.now());
-        EventResponseDTO expectedResponse = new EventResponseDTO(event.getId(), event.getName(), event.getEventDate());
+        EventResponseDTO expectedResponse = new EventResponseDTO(event.getId(), event.getName(), "27/06/2026");
 
         when(eventRepository.findById(id)).thenReturn(Optional.of(event));
         when(eventMapper.toResponse(any(Event.class))).thenReturn(expectedResponse);
@@ -92,9 +93,9 @@ class EventServiceTest {
     @Test
     void updateEvent_Success() {
         UUID id = UUID.randomUUID();
-        EventRequestDTO request = new EventRequestDTO("Ultra", OffsetDateTime.now());
+        EventRequestDTO request = new EventRequestDTO("Ultra", "27/06/2026");
         Event existingEvent = new Event(id, "Old Name", OffsetDateTime.now().minusDays(1));
-        Event updatedEvent = new Event(id, request.name(), request.eventDate());
+        Event updatedEvent = new Event(id, request.name(), DateHelper.toOffsetDateTime(request.eventDate()));
         EventResponseDTO expectedResponse = new EventResponseDTO(id, request.name(), request.eventDate());
 
         when(eventRepository.findById(id)).thenReturn(Optional.of(existingEvent));
@@ -111,7 +112,7 @@ class EventServiceTest {
     @Test
     void updateEvent_NotFound_ThrowsException() {
         UUID id = UUID.randomUUID();
-        EventRequestDTO request = new EventRequestDTO("Ultra", OffsetDateTime.now());
+        EventRequestDTO request = new EventRequestDTO("Ultra", "27/06/2026");
         when(eventRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> eventService.updateEvent(id, request));

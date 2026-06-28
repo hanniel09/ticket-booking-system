@@ -44,12 +44,11 @@ class EventControllerTest {
     @Test
     void createEvent_Success() throws Exception {
         UUID eventId = UUID.randomUUID();
-        OffsetDateTime date = OffsetDateTime.parse("2026-06-06T13:08:16-03:00");
-        EventResponseDTO response = new EventResponseDTO(eventId, "Concert", date);
+        EventResponseDTO response = new EventResponseDTO(eventId, "Concert", "06/06/2026");
 
         when(eventService.createEvent(any(EventRequestDTO.class))).thenReturn(response);
 
-        String json = "{\"name\":\"Concert\",\"eventDate\":\"2026-06-06T13:08:16-03:00\"}";
+        String json = "{\"name\":\"Concert\",\"eventDate\":\"06/06/2026\"}";
 
         mockMvc.perform(post("/events")
                         .with(csrf())
@@ -63,7 +62,7 @@ class EventControllerTest {
 
     @Test
     void getAllEvents_Success() throws Exception {
-        EventResponseDTO response = new EventResponseDTO(UUID.randomUUID(), "Concert", OffsetDateTime.now());
+        EventResponseDTO response = new EventResponseDTO(UUID.randomUUID(), "Concert", "06/06/2026");
         when(eventService.getAllEvents()).thenReturn(List.of(response));
 
         mockMvc.perform(get("/events")
@@ -77,7 +76,7 @@ class EventControllerTest {
     @Test
     void getEventById_Success() throws Exception {
         UUID id = UUID.randomUUID();
-        EventResponseDTO response = new EventResponseDTO(id, "Concert", OffsetDateTime.now());
+        EventResponseDTO response = new EventResponseDTO(id, "Concert", "06/06/2026");
         when(eventService.getEventById(id)).thenReturn(response);
 
         mockMvc.perform(get("/events/{id}", id)
@@ -91,11 +90,11 @@ class EventControllerTest {
     @Test
     void updateEvent_Success() throws Exception {
         UUID id = UUID.randomUUID();
-        EventResponseDTO response = new EventResponseDTO(id, "New Concert", OffsetDateTime.parse("2026-06-06T13:08:16-03:00"));
+        EventResponseDTO response = new EventResponseDTO(id, "New Concert", "06/06/2026");
 
         when(eventService.updateEvent(eq(id), any(EventRequestDTO.class))).thenReturn(response);
 
-        String json = "{\"name\":\"New Concert\",\"eventDate\":\"2026-06-06T13:08:16-03:00\"}";
+        String json = "{\"name\":\"New Concert\",\"eventDate\":\"06/06/2026\"}";
 
         mockMvc.perform(put("/events/{id}", id)
                         .with(csrf())
