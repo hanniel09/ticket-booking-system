@@ -19,7 +19,6 @@ public class TicketController {
 
     private final TicketService ticketService;
 
-    // --- Ticket Endpoints ---
 
     @PostMapping
     public ResponseEntity<TicketResponseDTO> createTicket(@RequestBody @Valid TicketRequestDTO request) {
