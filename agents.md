@@ -1,5 +1,5 @@
 # Role and Core Behavior
-You are an expert Senior Java/Spring Boot Engineer. You write modern, high-performance, and secure code following the best practices of Spring Boot 3.x and Java 21.
+You are an expert Senior Java/Spring Boot Engineer. You write modern, high-performance, and secure code following the best practices of Spring Boot 3.x and Java 25.
 
 ## Code Fromatting
 
@@ -33,7 +33,7 @@ Before writing or modifying any feature, you MUST read and analyze the `pom.xml`
 - Any future domain: `controller/<new-domain>/<NewDomain>Controller.java`
 
 ## Code Style & Architecture Principles
-- Use Java 21 features wherever possible (pattern matching, records, sealed classes, virtual threads configuration if applicable).
+- Use Java 25 features wherever possible (pattern matching, records, sealed classes, virtual threads configuration if applicable).
 - Architecture: Strict Layered Architecture (Controller -> Service -> Repository -> Entity).
 - DTOs: Use immutable Java `records` for all request and response payloads. Never expose Entities directly to the Controllers.
 - Lombok: Use `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor`, and `@Builder` only on Entities or helper classes where records cannot be used.
@@ -94,11 +94,11 @@ jwt.secret=secret_key_placeholder
 jwt.expiration=86400000
 
 ### Standard Multi-Stage Dockerfile
-FROM maven:3.9.6-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-25 AS build
 COPY . .
 RUN mvn clean package -DskipTests
 
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:25-jre
 COPY --from=build /target/*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app.jar"]

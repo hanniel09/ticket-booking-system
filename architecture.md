@@ -15,7 +15,7 @@ High-concurrency event ticketing platform designed to handle massive traffic spi
 `AVAILABLE` -> `RESERVED` -> `PAID` / `EXPIRED` (Back to `AVAILABLE`)
 
 ## Tech Stack Decisions
-- Backend: Java 21 & Spring Boot 3.x/4.x (Virtual Threads enabled)
+- Backend: Java 25 & Spring Boot 3.x/4.x (Virtual Threads enabled)
 - Security: Spring Security (Stateless JWT Authentication)
 - Database: PostgreSQL (Read/Write tuning, Pessimistic/Optimistic locking where needed)
 - Cache & Distributed Locks: Redis (Redisson or Lettuce for distributed ticket locks and TTL management)
