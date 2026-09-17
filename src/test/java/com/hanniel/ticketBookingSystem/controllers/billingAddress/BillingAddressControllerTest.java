@@ -22,7 +22,10 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+
 @WebMvcTest(BillingAddressController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class BillingAddressControllerTest {
 
     @Autowired
