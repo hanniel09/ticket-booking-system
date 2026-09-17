@@ -34,6 +34,7 @@ O histórico de desenvolvimento está estruturado nas categorias **Setup** e **F
 | [004-order-domain.md](file:///D:/dev/ticket-booking-system/tasks/feat/004-order-domain.md) | Criação, consulta e atualização de transações de pedidos vinculadas a usuários | `/orders/**` | Concluído |
 | [005-billing-address.md](file:///D:/dev/ticket-booking-system/tasks/feat/005-billing-address.md) | Gestão de dados fiscais obrigatórios para checkout (CPF/CNPJ, CEP, endereço) | `/billing-addresses/**` | Concluído |
 | [006-date-helper.md](file:///D:/dev/ticket-booking-system/tasks/feat/006-date-helper.md) | Utilitário central de parsing e formatação no padrão `DD/MM/YYYY` | Integrado aos mappers | Concluído |
+| [006-event-service-and-validation.md](file:///D:/dev/ticket-booking-system/tasks/feat/006-event-service-and-validation.md) | Validação temporal de eventos (bloqueio retroativo), método `findById` e testes de contrato | `/events/**` | Concluído |
 
 ---
 

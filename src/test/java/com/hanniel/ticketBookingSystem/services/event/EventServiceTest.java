@@ -36,7 +36,7 @@ class EventServiceTest {
 
     @Test
     void createEvent_Success() {
-        EventRequestDTO request = new EventRequestDTO("Rock in Rio", "27/06/2026");
+        EventRequestDTO request = new EventRequestDTO("Rock in Rio", "27/06/2027");
         Event event = new Event(UUID.randomUUID(), request.name(), DateHelper.toOffsetDateTime(request.eventDate()));
         EventResponseDTO expectedResponse = new EventResponseDTO(event.getId(), event.getName(), request.eventDate());
 
@@ -53,9 +53,22 @@ class EventServiceTest {
     }
 
     @Test
+    void createEvent_PastDate_ThrowsException() {
+        EventRequestDTO request = new EventRequestDTO("Past Event", "01/01/2020");
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> eventService.createEvent(request)
+        );
+
+        assertEquals("A data do evento não pode ser retroativa", exception.getMessage());
+        verify(eventRepository, never()).save(any(Event.class));
+    }
+
+    @Test
     void getAllEvents_Success() {
-        Event event = new Event(UUID.randomUUID(), "Lollapalooza", OffsetDateTime.now());
-        EventResponseDTO expectedResponse = new EventResponseDTO(event.getId(), event.getName(), "27/06/2026");
+        Event event = new Event(UUID.randomUUID(), "Lollapalooza", OffsetDateTime.now().plusMonths(6));
+        EventResponseDTO expectedResponse = new EventResponseDTO(event.getId(), event.getName(), "27/06/2027");
 
         when(eventRepository.findAll()).thenReturn(List.of(event));
         when(eventMapper.toResponse(any(Event.class))).thenReturn(expectedResponse);
@@ -70,8 +83,8 @@ class EventServiceTest {
     @Test
     void getEventById_Success() {
         UUID id = UUID.randomUUID();
-        Event event = new Event(id, "Tomorrowland", OffsetDateTime.now());
-        EventResponseDTO expectedResponse = new EventResponseDTO(event.getId(), event.getName(), "27/06/2026");
+        Event event = new Event(id, "Tomorrowland", OffsetDateTime.now().plusMonths(6));
+        EventResponseDTO expectedResponse = new EventResponseDTO(event.getId(), event.getName(), "27/06/2027");
 
         when(eventRepository.findById(id)).thenReturn(Optional.of(event));
         when(eventMapper.toResponse(any(Event.class))).thenReturn(expectedResponse);
@@ -91,10 +104,33 @@ class EventServiceTest {
     }
 
     @Test
+    void findById_Success() {
+        UUID id = UUID.randomUUID();
+        Event event = new Event(id, "Tomorrowland", OffsetDateTime.now().plusMonths(6));
+        EventResponseDTO expectedResponse = new EventResponseDTO(event.getId(), event.getName(), "27/06/2027");
+
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+        when(eventMapper.toResponse(any(Event.class))).thenReturn(expectedResponse);
+
+        EventResponseDTO response = eventService.findById(id);
+
+        assertNotNull(response);
+        assertEquals(id, response.id());
+    }
+
+    @Test
+    void findById_NotFound_ThrowsException() {
+        UUID id = UUID.randomUUID();
+        when(eventRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> eventService.findById(id));
+    }
+
+    @Test
     void updateEvent_Success() {
         UUID id = UUID.randomUUID();
-        EventRequestDTO request = new EventRequestDTO("Ultra", "27/06/2026");
-        Event existingEvent = new Event(id, "Old Name", OffsetDateTime.now().minusDays(1));
+        EventRequestDTO request = new EventRequestDTO("Ultra", "27/06/2027");
+        Event existingEvent = new Event(id, "Old Name", OffsetDateTime.now().plusDays(10));
         Event updatedEvent = new Event(id, request.name(), DateHelper.toOffsetDateTime(request.eventDate()));
         EventResponseDTO expectedResponse = new EventResponseDTO(id, request.name(), request.eventDate());
 
@@ -110,9 +146,26 @@ class EventServiceTest {
     }
 
     @Test
+    void updateEvent_PastDate_ThrowsException() {
+        UUID id = UUID.randomUUID();
+        EventRequestDTO request = new EventRequestDTO("Ultra", "01/01/2020");
+        Event existingEvent = new Event(id, "Old Name", OffsetDateTime.now().plusDays(10));
+
+        when(eventRepository.findById(id)).thenReturn(Optional.of(existingEvent));
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> eventService.updateEvent(id, request)
+        );
+
+        assertEquals("A data do evento não pode ser retroativa", exception.getMessage());
+        verify(eventRepository, never()).save(any(Event.class));
+    }
+
+    @Test
     void updateEvent_NotFound_ThrowsException() {
         UUID id = UUID.randomUUID();
-        EventRequestDTO request = new EventRequestDTO("Ultra", "27/06/2026");
+        EventRequestDTO request = new EventRequestDTO("Ultra", "27/06/2027");
         when(eventRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> eventService.updateEvent(id, request));
