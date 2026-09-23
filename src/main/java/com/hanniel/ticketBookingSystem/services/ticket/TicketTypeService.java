@@ -29,7 +29,8 @@ public class TicketTypeService {
     public TicketTypeResponseDTO createTicketType(TicketTypeRequestDTO request) {
         log.info("Creating ticket type with name: {} for event ID: {}", request.name(), request.eventId());
         if (!eventRepository.existsById(request.eventId())) {
-            throw new ResourceNotFoundException("Event not found with ID: " + request.eventId());
+            log.error("Event not found with ID: {}", request.eventId());
+            throw new ResourceNotFoundException("Evento não encontrado");
         }
 
         TicketType ticketType = ticketTypeMapper.toEntity(request);
@@ -50,18 +51,41 @@ public class TicketTypeService {
     public TicketTypeResponseDTO getTicketTypeById(UUID id) {
         log.info("Retrieving ticket type with ID: {}", id);
         TicketType ticketType = ticketTypeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket type not found with ID: " + id));
+                .orElseThrow(() -> {
+                    log.error("Ticket type not found with ID: {}", id);
+                    return new ResourceNotFoundException("Ticket type not found with ID: " + id);
+                });
         return ticketTypeMapper.toResponse(ticketType);
+    }
+
+    @Transactional(readOnly = true)
+    public TicketTypeResponseDTO findById(UUID id) {
+        log.info("Finding ticket type by ID: {}", id);
+        return getTicketTypeById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketTypeResponseDTO> findByEventId(UUID eventId) {
+        log.info("Finding ticket types for event ID: {}", eventId);
+        List<TicketTypeResponseDTO> ticketTypes = ticketTypeRepository.findByEventId(eventId).stream()
+                .map(ticketTypeMapper::toResponse)
+                .toList();
+        log.info("Retrieved {} ticket types for event ID: {}", ticketTypes.size(), eventId);
+        return ticketTypes;
     }
 
     @Transactional
     public TicketTypeResponseDTO updateTicketType(UUID id, TicketTypeRequestDTO request) {
         log.info("Updating ticket type with ID: {}", id);
         TicketType ticketType = ticketTypeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket type not found with ID: " + id));
+                .orElseThrow(() -> {
+                    log.error("Ticket type not found with ID: {}", id);
+                    return new ResourceNotFoundException("Ticket type not found with ID: " + id);
+                });
 
         if (!eventRepository.existsById(request.eventId())) {
-            throw new ResourceNotFoundException("Event not found with ID: " + request.eventId());
+            log.error("Event not found with ID: {}", request.eventId());
+            throw new ResourceNotFoundException("Evento não encontrado");
         }
 
         ticketTypeMapper.updateEntityFromRequest(request, ticketType);
@@ -75,6 +99,7 @@ public class TicketTypeService {
     public void deleteTicketType(UUID id) {
         log.info("Deleting ticket type with ID: {}", id);
         if (!ticketTypeRepository.existsById(id)) {
+            log.error("Ticket type not found with ID: {}", id);
             throw new ResourceNotFoundException("Ticket type not found with ID: " + id);
         }
         ticketTypeRepository.deleteById(id);
