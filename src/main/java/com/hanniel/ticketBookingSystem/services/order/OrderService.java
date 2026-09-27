@@ -2,10 +2,12 @@ package com.hanniel.ticketBookingSystem.services.order;
 
 import com.hanniel.ticketBookingSystem.domain.billingAddress.BillingAddress;
 import com.hanniel.ticketBookingSystem.domain.order.Order;
+import com.hanniel.ticketBookingSystem.domain.order.enums.OrderStatus;
 import com.hanniel.ticketBookingSystem.domain.ticket.TicketType;
 import com.hanniel.ticketBookingSystem.domain.user.User;
 import com.hanniel.ticketBookingSystem.dtos.order.OrderRequestDTO;
 import com.hanniel.ticketBookingSystem.dtos.order.OrderResponseDTO;
+import com.hanniel.ticketBookingSystem.exceptions.global.BusinessRuleException;
 import com.hanniel.ticketBookingSystem.exceptions.global.ResourceNotFoundException;
 import com.hanniel.ticketBookingSystem.mappers.order.OrderMapper;
 import com.hanniel.ticketBookingSystem.repositories.billingAddress.BillingAddressRepository;
@@ -17,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -38,24 +41,54 @@ public class OrderService {
         log.info("Creating order for user ID: {} and ticket type ID: {}", request.userId(), request.ticketTypeId());
 
         User user = userRepository.findById(request.userId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + request.userId()));
+                .orElseThrow(() -> {
+                    log.error("User not found with ID: {}", request.userId());
+                    return new ResourceNotFoundException("User not found with ID: " + request.userId());
+                });
 
         TicketType ticketType = ticketTypeRepository.findById(request.ticketTypeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket type not found with ID: " + request.ticketTypeId()));
+                .orElseThrow(() -> {
+                    log.error("Ticket type not found with ID: {}", request.ticketTypeId());
+                    return new ResourceNotFoundException("Ticket type not found with ID: " + request.ticketTypeId());
+                });
+
+        if (ticketType.getQuantityAvailable() == null || request.quantity() > ticketType.getQuantityAvailable()) {
+            log.error("Insufficient stock for ticket type ID: {}. Requested: {}, Available: {}",
+                    request.ticketTypeId(), request.quantity(), ticketType.getQuantityAvailable());
+            throw new BusinessRuleException("Estoque insuficiente");
+        }
+
+        if (request.billingAddressId() == null) {
+            log.error("Billing address ID is required for checkout");
+            throw new BusinessRuleException("Endereço de cobrança é obrigatório");
+        }
+
+        BillingAddress billingAddress = billingAddressRepository.findById(request.billingAddressId())
+                .orElseThrow(() -> {
+                    log.error("Billing address not found with ID: {}", request.billingAddressId());
+                    return new ResourceNotFoundException("Billing address not found with ID: " + request.billingAddressId());
+                });
+
+        if (billingAddress.getUser() == null || !billingAddress.getUser().getId().equals(user.getId())) {
+            log.error("Billing address ID: {} does not belong to user ID: {}", request.billingAddressId(), user.getId());
+            throw new BusinessRuleException("Endereço de cobrança não pertence ao usuário");
+        }
+
+        BigDecimal unitPrice = ticketType.getPrice() != null ? ticketType.getPrice() : BigDecimal.ZERO;
+        BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(request.quantity()));
 
         Order order = orderMapper.toEntity(request);
         order.setUser(user);
         order.setTicketType(ticketType);
+        order.setBillingAddress(billingAddress);
+        order.setQuantity(request.quantity());
+        order.setTotalAmount(totalAmount);
+        order.setStatus(OrderStatus.PENDING);
         order.setCreatedAt(OffsetDateTime.now());
 
-        if (request.billingAddressId() != null) {
-            BillingAddress billingAddress = billingAddressRepository.findById(request.billingAddressId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Billing address not found with ID: " + request.billingAddressId()));
-            order.setBillingAddress(billingAddress);
-        }
-
         Order saved = orderRepository.save(order);
-        log.info("Order created successfully with ID: {}", saved.getId());
+        log.info("Order created successfully with ID: {}, total amount: {}, status: {}",
+                saved.getId(), saved.getTotalAmount(), saved.getStatus());
         return orderMapper.toResponse(saved);
     }
 
@@ -71,7 +104,10 @@ public class OrderService {
     public OrderResponseDTO getOrderById(UUID id) {
         log.info("Retrieving order with ID: {}", id);
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
+                .orElseThrow(() -> {
+                    log.error("Order not found with ID: {}", id);
+                    return new ResourceNotFoundException("Order not found with ID: " + id);
+                });
         return orderMapper.toResponse(order);
     }
 
@@ -79,13 +115,22 @@ public class OrderService {
     public OrderResponseDTO updateOrder(UUID id, OrderRequestDTO request) {
         log.info("Updating order with ID: {}", id);
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
+                .orElseThrow(() -> {
+                    log.error("Order not found with ID: {}", id);
+                    return new ResourceNotFoundException("Order not found with ID: " + id);
+                });
 
         User user = userRepository.findById(request.userId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + request.userId()));
+                .orElseThrow(() -> {
+                    log.error("User not found with ID: {}", request.userId());
+                    return new ResourceNotFoundException("User not found with ID: " + request.userId());
+                });
 
         TicketType ticketType = ticketTypeRepository.findById(request.ticketTypeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket type not found with ID: " + request.ticketTypeId()));
+                .orElseThrow(() -> {
+                    log.error("Ticket type not found with ID: {}", request.ticketTypeId());
+                    return new ResourceNotFoundException("Ticket type not found with ID: " + request.ticketTypeId());
+                });
 
         orderMapper.updateEntityFromRequest(request, order);
         order.setUser(user);
@@ -93,7 +138,14 @@ public class OrderService {
 
         if (request.billingAddressId() != null) {
             BillingAddress billingAddress = billingAddressRepository.findById(request.billingAddressId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Billing address not found with ID: " + request.billingAddressId()));
+                    .orElseThrow(() -> {
+                        log.error("Billing address not found with ID: {}", request.billingAddressId());
+                        return new ResourceNotFoundException("Billing address not found with ID: " + request.billingAddressId());
+                    });
+            if (billingAddress.getUser() == null || !billingAddress.getUser().getId().equals(user.getId())) {
+                log.error("Billing address ID: {} does not belong to user ID: {}", request.billingAddressId(), user.getId());
+                throw new BusinessRuleException("Endereço de cobrança não pertence ao usuário");
+            }
             order.setBillingAddress(billingAddress);
         } else {
             order.setBillingAddress(null);
@@ -108,6 +160,7 @@ public class OrderService {
     public void deleteOrder(UUID id) {
         log.info("Deleting order with ID: {}", id);
         if (!orderRepository.existsById(id)) {
+            log.error("Order not found with ID: {}", id);
             throw new ResourceNotFoundException("Order not found with ID: " + id);
         }
         orderRepository.deleteById(id);

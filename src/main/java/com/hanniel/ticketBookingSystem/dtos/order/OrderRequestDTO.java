@@ -24,15 +24,14 @@ public record OrderRequestDTO(
         @Positive(message = "Quantity must be greater than zero")
         Integer quantity,
 
-        @Schema(description = "Valor total do pedido", example = "350.00")
-        @NotNull(message = "Total amount is required")
+        @Schema(description = "Valor total do pedido (calculado automaticamente na criação)", example = "350.00")
         @PositiveOrZero(message = "Total amount cannot be negative")
         BigDecimal totalAmount,
 
-        @Schema(description = "Status atual do pedido", example = "PENDING")
-        @NotNull(message = "Order status is required")
+        @Schema(description = "Status atual do pedido (definido como PENDING na criação)", example = "PENDING")
         OrderStatus status,
 
         @Schema(description = "Identificador do endereço fiscal associado ao pedido", example = "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f")
+        @NotNull(message = "Billing address ID is required")
         UUID billingAddressId
 ) {}

@@ -36,6 +36,7 @@ O histórico de desenvolvimento está estruturado nas categorias **Setup** e **F
 | [006-date-helper.md](file:///D:/dev/ticket-booking-system/tasks/feat/006-date-helper.md) | Utilitário central de parsing e formatação no padrão `DD/MM/YYYY` | Integrado aos mappers | Concluído |
 | [006-event-service-and-validation.md](file:///D:/dev/ticket-booking-system/tasks/feat/006-event-service-and-validation.md) | Validação temporal de eventos (bloqueio retroativo), método `findById` e testes de contrato | `/events/**` | Concluído |
 | [007-ticket-type-service-and-inventory.md](file:///D:/dev/ticket-booking-system/tasks/feat/007-ticket-type-service-and-inventory.md) | Gestão de tipos de ingresso, definição de estoque e integridade referencial com eventos | `/tickets/types/**` | Concluído |
+| [008-order-checkout-init-&-state-machine.md](file:///D:/dev/ticket-booking-system/tasks/feat/008-order-checkout-init-&-state-machine.md) | Inicialização síncrona de checkout, cálculo de total, validação de estoque relacional e vínculo obrigatório de endereço fiscal | `/orders/**` | Concluído |
 
 ---
 
