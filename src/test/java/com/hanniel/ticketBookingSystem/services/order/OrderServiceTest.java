@@ -14,6 +14,7 @@ import com.hanniel.ticketBookingSystem.repositories.billingAddress.BillingAddres
 import com.hanniel.ticketBookingSystem.repositories.order.OrderRepository;
 import com.hanniel.ticketBookingSystem.repositories.ticket.TicketTypeRepository;
 import com.hanniel.ticketBookingSystem.repositories.user.UserRepository;
+import com.hanniel.ticketBookingSystem.services.ticket.TicketInventoryRedisService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -48,6 +49,9 @@ class OrderServiceTest {
 
     @Mock
     private OrderMapper orderMapper;
+
+    @Mock
+    private TicketInventoryRedisService ticketInventoryRedisService;
 
     @InjectMocks
     private OrderService orderService;

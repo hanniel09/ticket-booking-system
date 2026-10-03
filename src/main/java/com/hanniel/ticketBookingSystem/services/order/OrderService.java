@@ -14,6 +14,7 @@ import com.hanniel.ticketBookingSystem.repositories.billingAddress.BillingAddres
 import com.hanniel.ticketBookingSystem.repositories.order.OrderRepository;
 import com.hanniel.ticketBookingSystem.repositories.ticket.TicketTypeRepository;
 import com.hanniel.ticketBookingSystem.repositories.user.UserRepository;
+import com.hanniel.ticketBookingSystem.services.ticket.TicketInventoryRedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class OrderService {
     private final TicketTypeRepository ticketTypeRepository;
     private final BillingAddressRepository billingAddressRepository;
     private final OrderMapper orderMapper;
+    private final TicketInventoryRedisService ticketInventoryRedisService;
 
     @Transactional
     public OrderResponseDTO createOrder(OrderRequestDTO request) {
@@ -74,22 +76,31 @@ public class OrderService {
             throw new BusinessRuleException("Endereço de cobrança não pertence ao usuário");
         }
 
-        BigDecimal unitPrice = ticketType.getPrice() != null ? ticketType.getPrice() : BigDecimal.ZERO;
-        BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(request.quantity()));
+        ticketInventoryRedisService.reserveStock(ticketType.getId(), Long.valueOf(request.quantity()));
 
-        Order order = orderMapper.toEntity(request);
-        order.setUser(user);
-        order.setTicketType(ticketType);
-        order.setBillingAddress(billingAddress);
-        order.setQuantity(request.quantity());
-        order.setTotalAmount(totalAmount);
-        order.setStatus(OrderStatus.PENDING);
-        order.setCreatedAt(OffsetDateTime.now());
+        try {
 
-        Order saved = orderRepository.save(order);
-        log.info("Order created successfully with ID: {}, total amount: {}, status: {}",
-                saved.getId(), saved.getTotalAmount(), saved.getStatus());
-        return orderMapper.toResponse(saved);
+            BigDecimal unitPrice = ticketType.getPrice() != null ? ticketType.getPrice() : BigDecimal.ZERO;
+            BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(request.quantity()));
+
+            Order order = orderMapper.toEntity(request);
+            order.setUser(user);
+            order.setTicketType(ticketType);
+            order.setBillingAddress(billingAddress);
+            order.setQuantity(request.quantity());
+            order.setTotalAmount(totalAmount);
+            order.setStatus(OrderStatus.PENDING);
+            order.setCreatedAt(OffsetDateTime.now());
+
+            Order saved = orderRepository.save(order);
+            log.info("Order created successfully with ID: {}, total amount: {}, status: {}",
+                    saved.getId(), saved.getTotalAmount(), saved.getStatus());
+            return orderMapper.toResponse(saved);
+        } catch (Exception e){
+            ticketInventoryRedisService.releaseStock(ticketType.getId(), Long.valueOf(request.quantity()));
+            log.error("Order cannot be executed with TicketType ID: {}", ticketType.getId(), e);
+            throw e;
+        }
     }
 
     @Transactional(readOnly = true)

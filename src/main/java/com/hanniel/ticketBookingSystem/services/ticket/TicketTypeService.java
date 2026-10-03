@@ -24,6 +24,7 @@ public class TicketTypeService {
     private final TicketTypeRepository ticketTypeRepository;
     private final EventRepository eventRepository;
     private final TicketTypeMapper ticketTypeMapper;
+    private final TicketInventoryRedisService ticketInventoryRedisService;
 
     @Transactional
     public TicketTypeResponseDTO createTicketType(TicketTypeRequestDTO request) {
@@ -35,6 +36,8 @@ public class TicketTypeService {
 
         TicketType ticketType = ticketTypeMapper.toEntity(request);
         TicketType saved = ticketTypeRepository.save(ticketType);
+        ticketInventoryRedisService.initStock(saved.getId(), saved.getQuantityAvailable());
+
         log.info("Ticket type created successfully with ID: {}", saved.getId());
         return ticketTypeMapper.toResponse(saved);
     }

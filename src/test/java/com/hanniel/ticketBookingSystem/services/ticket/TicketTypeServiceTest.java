@@ -40,6 +40,9 @@ class TicketTypeServiceTest {
     @Mock
     private TicketTypeMapper ticketTypeMapper;
 
+    @Mock
+    private TicketInventoryRedisService ticketInventoryRedisService;
+
     @InjectMocks
     private TicketTypeService ticketTypeService;
 
